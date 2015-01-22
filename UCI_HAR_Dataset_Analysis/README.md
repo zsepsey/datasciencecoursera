@@ -1,7 +1,7 @@
 Data Analysis on the UCI HAR Dataset
 ====================================
 
-The purpose of this repo is to demonstrate how to create a tidy data set from the UCI HAR Dataset that can be used fur further analysis.
+The purpose of this repo is to demonstrate how to create a tidy data set from the UCI HAR Dataset that can be used for further analysis.
 
 The analysis was done for the purpose of the "Getting and Cleaning Data" course which is part of the "Data Science" specialization track on [Coursera](http://www.coursera.org).
 
@@ -18,13 +18,13 @@ The script performs the following steps:
 
 1. Checks if the data set exists, otherwise it downloads and extracts;
 3. Load both test and train data for the measurements;
-4. Loads the features;
+4. Loads the features file;
 5. Extract the mean and standard deviation column names and data;
-6. Loads the activity and subject and merges into one data set with the measurements;
+6. Loads the activity and subject data and merges them with the measurements into one data set;
 7. Replaces the activity ID's with the descriptive activity labels;
 8. Adds descriptive variable names the the data set;
 10. Creates a tidy data set with the measurement means per subject and activity;
-11. Saves the data set into the measurementAverages.cvs file on the file system.
+11. Saves the data set into the [measurementAverages.cvs](./measurementAverages.csv) file on the file system.
 
 The script can be loaded into the R workspace and run by the following commands:
 
