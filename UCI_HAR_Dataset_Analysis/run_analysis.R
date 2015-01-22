@@ -65,13 +65,13 @@ mergeAllFiles <- function(measurements) {
 
 # Selects mean or standard deviation measurements data
 selectMeanStdFeatures <- function(data, features) {
-  featuresBool <- grepl("-(std|mean)\\(\\)$", features[,2])
+  featuresBool <- grepl("-(std|mean)\\(\\)", features[,2])
   data[, featuresBool]
 }
 
 # Selects feature names that denote a mean or standard deviation of measurements
 meanStdFeatureNames <- function(allFeatures) {
-  featureNames <- subset(allFeatures, grepl("-(std|mean)\\(\\)$", allFeatures[,2]))
+  featureNames <- subset(allFeatures, grepl("-(std|mean)\\(\\)", allFeatures[,2]))
   gsub("(\\(|\\))", "", featureNames[,2])
 }
 
