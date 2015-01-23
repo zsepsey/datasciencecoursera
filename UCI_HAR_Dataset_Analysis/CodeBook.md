@@ -30,7 +30,7 @@ The obtained dataset has been randomly partitioned into two sets, where 70% of t
 Features are normalized and bounded within [-1,1].
 
 ## Transformations on the original data
-The original dataset, which consisted 563 measurement features, has been filtered for including only the mean and standard deviation of each measurements, yielding 66 variables. Averages for these variables have been calculated over the subjects (volunteers) and activities.
+The original dataset, which consisted of 563 measurement features, has been filtered for including only the mean and standard deviation of each measurements, yielding 66 variables. Averages for these variables have been calculated over the subjects (volunteers) and activities.
 
 The transformation on the original data has been:
 
@@ -45,8 +45,8 @@ After the transformations described above the script generates the result set an
 ##The Result Set
 The resulting data set is a tidy data set saved in the [measurementAverages.csv](./measurementAverages.csv) file, which contains the summary of the original data. It is a 180x68 data table (181 with column name), with the following columns:
 
-1. **Subject**: Column 1; contains the subject ID's of the 30 volunteers in the study;
-2. **Activity**: Column 2; activity names ('*laying*', '*sitting*', '*standing*', '*walking*', '*walking_downstairs*' or '*walking_upstairs*');
+1. **Subject**: column 1; contains the subject ID's of the 30 volunteers in the study;
+2. **Activity**: column 2; activity names ('*laying*', '*sitting*', '*standing*', '*walking*', '*walking_downstairs*' or '*walking_upstairs*');
 3. **Measurement means**: column 3..68; the averages for the 66 attributes included in the transformation. The averages are calculated per subject and activity. See the next section for the list of 66 measurements.
 
 There are 30 subjects and 6 activities, thus 180 rows in this data set with averages.
