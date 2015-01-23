@@ -1,11 +1,11 @@
 Data Analysis on the UCI HAR Dataset
 ====================================
 
-The purpose of this repo is to demonstrate how to create a tidy data set from the UCI HAR Dataset that can be used for further analysis.
+The purpose of this repository is to demonstrate how to create a tidy data set from the UCI HAR Dataset that can be used for further analysis.
 
 The analysis was done for the purpose of the "Getting and Cleaning Data" course which is part of the "Data Science" specialization track on [Coursera](http://www.coursera.org).
 
-The repo contains:
+The repository contains:
 * run_analysis.R: R script that performs the data transformations;
 * measurementAverages.csv: the outout of the script;
 * CodeBook.md: the code book for the analysis;
@@ -28,7 +28,7 @@ The script performs the following steps:
 
 The script can be loaded into the R workspace and run by the following commands:
 
-```` 
+```` R
     source("run_analysis.R")
     run()
 ````
