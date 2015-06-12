@@ -1,0 +1,74 @@
+---
+title: "Practical Machine Learning - Course Project"
+author: "Zsuzsanna Sepsey"
+date: "12 Jun 2015"
+output: html_document
+---
+
+
+```{r}
+# Course Project
+library(caret)
+library(randomForest)
+
+set.seed(4321)
+
+# FUNCTIONS
+downloadCSVAndLoadTable <- function(fileURL, filename, dir, header = FALSE, skip=0) {
+  if (file.exists(filename) == FALSE) {
+    download.file(fileURL, destfile = filename, method="curl")
+  }  
+  
+  read.csv(paste(c(dir, "/", filename), collapse=''), sep=",", header = header, skip=skip, na.strings=c("NA","#DIV/0!",""))
+}  
+
+
+training_all<-downloadCSVAndLoadTable("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", "pml-training.csv", 
+                                  dir=getwd(),
+                                  header=TRUE)
+testing<-downloadCSVAndLoadTable("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", "pml-testing.csv", 
+                                  dir=getwd(),
+                                  header=TRUE)
+
+# Remove missing values
+# Calculate columns with the most missing values in them and remove those columns from the data set
+count_na = sapply(training_all, function(x) {sum(is.na(x))})
+table(count_na)
+max(count_na) #19216
+length(count_na[count_na >= 19000]) #100
+remove_cols <- training_all[,colSums(is.na(training_all)) >= 19000]
+training <- training_all[, !names(training_all) %in% names(remove_cols)]
+
+# get rid of unecessary columns (columns related to individual and time series)
+training <- training[, -c(1:7)]
+
+# Split data set to training and validation set
+inTrain = createDataPartition(y=training$classe, p=0.6, list=FALSE)
+training = training[inTrain,]
+validation = training[-inTrain,]
+
+# Build model with the random forests method to predict the variable *classe*
+model <- randomForest(classe~., data=training)
+saveRDS(model, "rfmodel.RDS")
+model = readRDS("rfmodel.RDS")
+
+predictions_validation <- predict(model,validation)
+confusionMatrix(predictions_validation, validation$classe)
+
+# calculate predictions on the training set
+predictions <- predict(model,testing)
+# Create answer files
+pml_write_files = function(x){
+  
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+ pml_write_files(predictions)
+
+
+```
+
