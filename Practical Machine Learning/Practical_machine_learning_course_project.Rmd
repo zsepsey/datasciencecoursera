@@ -1,19 +1,22 @@
 ---
 title: "Practical Machine Learning - Course Project"
 author: "Zsuzsanna Sepsey"
-date: "12 Jun 2015"
+date: "12 June 2015"
 output: html_document
 ---
 
+**NOTE FOR THE REVIEWER: I tried to create a gh-pages branch but unfortunately I have not been successful and eventually ran out of time. So please be kind...**
 
+#### Introduction
+Using devices such as *Jawbone Up*, *Nike FuelBand*, and *Fitbit* it is now possible to collect a large amount of data about personal activity relatively inexpensively. In this project, we will use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. The goal is to predict the manner in which they did the exercise. 
+We will be using the *classe* variable in the training set and a number of other variables as predictors to build a model with. Cross validation will be used to test the model on an independent training set and to predict the out-of-sample error rate.
+
+#### The Data
+More information on the data is available from the website here: *http://groupware.les.inf.puc-rio.br/har* (see the section on the Weight Lifting Exercise Dataset). 
+We obtain the data from *https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv*
+
+First we are downloading and reading the training database in our R session.
 ```{r}
-# Course Project
-library(caret)
-library(randomForest)
-
-set.seed(4321)
-
-# FUNCTIONS
 downloadCSVAndLoadTable <- function(fileURL, filename, dir, header = FALSE, skip=0) {
   if (file.exists(filename) == FALSE) {
     download.file(fileURL, destfile = filename, method="curl")
@@ -22,53 +25,73 @@ downloadCSVAndLoadTable <- function(fileURL, filename, dir, header = FALSE, skip
   read.csv(paste(c(dir, "/", filename), collapse=''), sep=",", header = header, skip=skip, na.strings=c("NA","#DIV/0!",""))
 }  
 
-
-training_all<-downloadCSVAndLoadTable("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", "pml-training.csv", 
+training_data<-downloadCSVAndLoadTable("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", "pml-training.csv", 
                                   dir=getwd(),
                                   header=TRUE)
-testing<-downloadCSVAndLoadTable("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", "pml-testing.csv", 
-                                  dir=getwd(),
-                                  header=TRUE)
-
-# Remove missing values
-# Calculate columns with the most missing values in them and remove those columns from the data set
-count_na = sapply(training_all, function(x) {sum(is.na(x))})
-table(count_na)
-max(count_na) #19216
-length(count_na[count_na >= 19000]) #100
-remove_cols <- training_all[,colSums(is.na(training_all)) >= 19000]
-training <- training_all[, !names(training_all) %in% names(remove_cols)]
-
-# get rid of unecessary columns (columns related to individual and time series)
-training <- training[, -c(1:7)]
-
-# Split data set to training and validation set
-inTrain = createDataPartition(y=training$classe, p=0.6, list=FALSE)
-training = training[inTrain,]
-validation = training[-inTrain,]
-
-# Build model with the random forests method to predict the variable *classe*
-model <- randomForest(classe~., data=training)
-saveRDS(model, "rfmodel.RDS")
-model = readRDS("rfmodel.RDS")
-
-predictions_validation <- predict(model,validation)
-confusionMatrix(predictions_validation, validation$classe)
-
-# calculate predictions on the training set
-predictions <- predict(model,testing)
-# Create answer files
-pml_write_files = function(x){
-  
-  n = length(x)
-  for(i in 1:n){
-    filename = paste0("problem_id_",i,".txt")
-    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
-  }
-}
-
- pml_write_files(predictions)
-
-
 ```
 
+Then we take an initial look at the data:
+```{r}
+dim(training_data)
+summary(training_data$classe)
+```
+
+The data set contains `r dim(training_data)[1]` records and `r dim(training_data)[2]` observations. The *classe* variable is our prediction variable which gives 5 different classifications on the quality of the excercises of the 6 individuals.
+
+#### Pre-processing
+We split the training set into a training and test set. We train our model on the training set and cross-validate our model on the test set and predict the out-of-sample error on the model.
+
+```{r, message=F, warning=F}
+library(caret, warn.conflicts = FALSE, quietly=TRUE)
+library(randomForest, warn.conflicts = FALSE, quietly=TRUE)
+set.seed(4321)
+
+# Split data set to training and test set
+inTrain = createDataPartition(y=training_data$classe, p=0.6, list=FALSE)
+training = training_data[inTrain,]
+testing = training_data[-inTrain,]
+```
+
+When we take a closer look at the data we can see that numerous columns consist largely of missing values.
+```{r}
+# Calculate columns with the most missing values in them and remove those columns from the data set
+count_na = sapply(training, function(x) {sum(is.na(x))})
+table(count_na)
+```
+
+We remove the columns that consist of NA values for more than 90%. 
+```{r}
+remove_cols <- training[,colSums(is.na(training_data)) >= 11000]
+training <- training[, !names(training) %in% names(remove_cols)]
+dim(training)
+```
+
+There are `r dim(training)[2]` columns left. The first 7 columns contain no activity measurements, only information about the individuals and time stamps. We remove those.
+
+```{r}
+training <- training[, -c(1:7)]
+str(training)
+``` 
+
+The remaining data set now consists of `r dim(training)[2]` columns.
+
+#### Building model to predict training quality
+We use the random forests method on the training data to build a model for predicting the *classe* variable. All other variables are used as predictors.
+
+```{r}
+model <- randomForest(classe~., data=training)
+```
+
+Now that we built a model on the **training set**, we can use the **test set** to evaluate accuracy of the model and calculate the out-of-sample error rate.
+
+```{r}
+prediction <- predict(model,testing)
+cm <- confusionMatrix(prediction, testing$classe)
+cm
+```
+
+The overall accuracy is `r round(cm$overall[1]*100,2)`%, which makes the out-of-sample error rate **1 - accuracy** = `r round((1-cm$overall[1])*100,2)`%, which is a fairly low error rate for out of sample data.
+
+#### Conclusion
+We have built a machine learning algorithm to predict activity quality from activity monitors. We validated the model on the test set to predict how the model would perform on an independent data set.
+The out-of-sample error rate has been `r round((1-cm$overall[1])*100,2)`%, which is a fairly promising result for the 5 activity quality monitors collected into this dataset.

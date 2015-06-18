@@ -64,24 +64,20 @@ img {
 <div id="header">
 <h1 class="title">Practical Machine Learning - Course Project</h1>
 <h4 class="author"><em>Zsuzsanna Sepsey</em></h4>
-<h4 class="date"><em>12 Jun 2015</em></h4>
+<h4 class="date"><em>12 June 2015</em></h4>
 </div>
 
 
-<pre class="r"><code># Course Project
-library(caret)</code></pre>
-<pre><code>## Warning: package 'caret' was built under R version 3.1.3</code></pre>
-<pre><code>## Loading required package: lattice</code></pre>
-<pre><code>## Warning: package 'lattice' was built under R version 3.1.3</code></pre>
-<pre><code>## Loading required package: ggplot2</code></pre>
-<pre><code>## Warning: package 'ggplot2' was built under R version 3.1.3</code></pre>
-<pre class="r"><code>library(randomForest)</code></pre>
-<pre><code>## randomForest 4.6-10
-## Type rfNews() to see new features/changes/bug fixes.</code></pre>
-<pre class="r"><code>set.seed(4321)
-
-# FUNCTIONS
-downloadCSVAndLoadTable &lt;- function(fileURL, filename, dir, header = FALSE, skip=0) {
+<p><strong>NOTE FOR THE REVIEWER: I tried to create a gh-pages branch but unfortunately I have not been successful and eventually ran out of time. So please be kind…</strong></p>
+<div id="introduction" class="section level4">
+<h4>Introduction</h4>
+<p>Using devices such as <em>Jawbone Up</em>, <em>Nike FuelBand</em>, and <em>Fitbit</em> it is now possible to collect a large amount of data about personal activity relatively inexpensively. In this project, we will use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. The goal is to predict the manner in which they did the exercise. We will be using the <em>classe</em> variable in the training set and a number of other variables as predictors to build a model with. Cross validation will be used to test the model on an independent training set and to predict the out-of-sample error rate.</p>
+</div>
+<div id="the-data" class="section level4">
+<h4>The Data</h4>
+<p>More information on the data is available from the website here: <em><a href="http://groupware.les.inf.puc-rio.br/har" class="uri">http://groupware.les.inf.puc-rio.br/har</a></em> (see the section on the Weight Lifting Exercise Dataset). We obtain the data from <em><a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv" class="uri">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv</a></em></p>
+<p>First we are downloading and reading the training database in our R session.</p>
+<pre class="r"><code>downloadCSVAndLoadTable &lt;- function(fileURL, filename, dir, header = FALSE, skip=0) {
   if (file.exists(filename) == FALSE) {
     download.file(fileURL, destfile = filename, method=&quot;curl&quot;)
   }  
@@ -89,89 +85,144 @@ downloadCSVAndLoadTable &lt;- function(fileURL, filename, dir, header = FALSE, s
   read.csv(paste(c(dir, &quot;/&quot;, filename), collapse=''), sep=&quot;,&quot;, header = header, skip=skip, na.strings=c(&quot;NA&quot;,&quot;#DIV/0!&quot;,&quot;&quot;))
 }  
 
-
-training_all&lt;-downloadCSVAndLoadTable(&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;, &quot;pml-training.csv&quot;, 
+training_data&lt;-downloadCSVAndLoadTable(&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;, &quot;pml-training.csv&quot;, 
                                   dir=getwd(),
-                                  header=TRUE)
-testing&lt;-downloadCSVAndLoadTable(&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv&quot;, &quot;pml-testing.csv&quot;, 
-                                  dir=getwd(),
-                                  header=TRUE)
+                                  header=TRUE)</code></pre>
+<p>Then we take an initial look at the data:</p>
+<pre class="r"><code>dim(training_data)</code></pre>
+<pre><code>## [1] 19622   160</code></pre>
+<pre class="r"><code>summary(training_data$classe)</code></pre>
+<pre><code>##    A    B    C    D    E 
+## 5580 3797 3422 3216 3607</code></pre>
+<p>The data set contains 19622 records and 160 observations. The <em>classe</em> variable is our prediction variable which gives 5 different classifications on the quality of the excercises of the 6 individuals.</p>
+</div>
+<div id="pre-processing" class="section level4">
+<h4>Pre-processing</h4>
+<p>We split the training set into a training and test set. We train our model on the training set and cross-validate our model on the test set and predict the out-of-sample error on the model.</p>
+<pre class="r"><code>library(caret, warn.conflicts = FALSE, quietly=TRUE)
+library(randomForest, warn.conflicts = FALSE, quietly=TRUE)
+set.seed(4321)
 
-# Remove missing values
-# Calculate columns with the most missing values in them and remove those columns from the data set
-count_na = sapply(training_all, function(x) {sum(is.na(x))})
+# Split data set to training and test set
+inTrain = createDataPartition(y=training_data$classe, p=0.6, list=FALSE)
+training = training_data[inTrain,]
+testing = training_data[-inTrain,]</code></pre>
+<p>When we take a closer look at the data we can see that numerous columns consist largely of missing values.</p>
+<pre class="r"><code># Calculate columns with the most missing values in them and remove those columns from the data set
+count_na = sapply(training, function(x) {sum(is.na(x))})
 table(count_na)</code></pre>
 <pre><code>## count_na
-##     0 19216 19217 19218 19220 19221 19225 19226 19227 19248 19293 19294 
-##    60    67     1     1     1     4     1     4     2     2     1     1 
-## 19296 19299 19300 19301 19622 
-##     2     1     4     2     6</code></pre>
-<pre class="r"><code>max(count_na) #19216</code></pre>
-<pre><code>## [1] 19622</code></pre>
-<pre class="r"><code>length(count_na[count_na &gt;= 19000]) #100</code></pre>
-<pre><code>## [1] 100</code></pre>
-<pre class="r"><code>remove_cols &lt;- training_all[,colSums(is.na(training_all)) &gt;= 19000]
-training &lt;- training_all[, !names(training_all) %in% names(remove_cols)]
-
-# get rid of unecessary columns (columns related to individual and time series)
-training &lt;- training[, -c(1:7)]
-
-# Split data set to training and validation set
-inTrain = createDataPartition(y=training$classe, p=0.6, list=FALSE)
-training = training[inTrain,]
-validation = training[-inTrain,]
-
-# Build model with the random forests method to predict the variable *classe*
-model &lt;- randomForest(classe~., data=training)
-saveRDS(model, &quot;rfmodel.RDS&quot;)
-model = readRDS(&quot;rfmodel.RDS&quot;)
-
-predictions_validation &lt;- predict(model,validation)
-confusionMatrix(predictions_validation, validation$classe)</code></pre>
+##     0 11520 11521 11523 11526 11541 11569 11571 11573 11574 11776 
+##    60    67     2     5     7     2     2     2     5     2     6</code></pre>
+<p>We remove the columns that consist of NA values for more than 90%.</p>
+<pre class="r"><code>remove_cols &lt;- training[,colSums(is.na(training_data)) &gt;= 11000]
+training &lt;- training[, !names(training) %in% names(remove_cols)]
+dim(training)</code></pre>
+<pre><code>## [1] 11776    60</code></pre>
+<p>There are 60 columns left. The first 7 columns contain no activity measurements, only information about the individuals and time stamps. We remove those.</p>
+<pre class="r"><code>training &lt;- training[, -c(1:7)]
+str(training)</code></pre>
+<pre><code>## 'data.frame':    11776 obs. of  53 variables:
+##  $ roll_belt           : num  1.41 1.41 1.42 1.48 1.48 1.45 1.42 1.43 1.45 1.45 ...
+##  $ pitch_belt          : num  8.07 8.07 8.07 8.05 8.07 8.06 8.13 8.16 8.17 8.18 ...
+##  $ yaw_belt            : num  -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 ...
+##  $ total_accel_belt    : int  3 3 3 3 3 3 3 3 3 3 ...
+##  $ gyros_belt_x        : num  0 0.02 0 0.02 0.02 0.02 0.02 0.02 0.03 0.03 ...
+##  $ gyros_belt_y        : num  0 0 0 0 0.02 0 0 0 0 0 ...
+##  $ gyros_belt_z        : num  -0.02 -0.02 -0.02 -0.03 -0.02 -0.02 -0.02 -0.02 0 -0.02 ...
+##  $ accel_belt_x        : int  -21 -22 -20 -22 -21 -21 -22 -20 -21 -21 ...
+##  $ accel_belt_y        : int  4 4 5 3 2 4 4 2 4 2 ...
+##  $ accel_belt_z        : int  22 22 23 21 24 21 21 24 22 23 ...
+##  $ magnet_belt_x       : int  -3 -7 -2 -6 -6 0 -2 1 -3 -5 ...
+##  $ magnet_belt_y       : int  599 608 600 604 600 603 603 602 609 596 ...
+##  $ magnet_belt_z       : int  -313 -311 -305 -310 -302 -312 -313 -312 -308 -317 ...
+##  $ roll_arm            : num  -128 -128 -128 -128 -128 -128 -128 -128 -128 -128 ...
+##  $ pitch_arm           : num  22.5 22.5 22.5 22.1 22.1 22 21.8 21.7 21.6 21.5 ...
+##  $ yaw_arm             : num  -161 -161 -161 -161 -161 -161 -161 -161 -161 -161 ...
+##  $ total_accel_arm     : int  34 34 34 34 34 34 34 34 34 34 ...
+##  $ gyros_arm_x         : num  0 0.02 0.02 0.02 0 0.02 0.02 0.02 0.02 0.02 ...
+##  $ gyros_arm_y         : num  0 -0.02 -0.02 -0.03 -0.03 -0.03 -0.02 -0.03 -0.03 -0.03 ...
+##  $ gyros_arm_z         : num  -0.02 -0.02 -0.02 0.02 0 0 0 -0.02 -0.02 0 ...
+##  $ accel_arm_x         : int  -288 -290 -289 -289 -289 -289 -289 -288 -288 -290 ...
+##  $ accel_arm_y         : int  109 110 110 111 111 111 111 109 110 110 ...
+##  $ accel_arm_z         : int  -123 -125 -126 -123 -123 -122 -124 -122 -124 -123 ...
+##  $ magnet_arm_x        : int  -368 -369 -368 -372 -374 -369 -372 -369 -376 -366 ...
+##  $ magnet_arm_y        : int  337 337 344 344 337 342 338 341 334 339 ...
+##  $ magnet_arm_z        : int  516 513 513 512 506 513 510 518 516 509 ...
+##  $ roll_dumbbell       : num  13.1 13.1 12.9 13.4 13.4 ...
+##  $ pitch_dumbbell      : num  -70.5 -70.6 -70.3 -70.4 -70.4 ...
+##  $ yaw_dumbbell        : num  -84.9 -84.7 -85.1 -84.9 -84.9 ...
+##  $ total_accel_dumbbell: int  37 37 37 37 37 37 37 37 37 37 ...
+##  $ gyros_dumbbell_x    : num  0 0 0 0 0 0 0 0 0 0 ...
+##  $ gyros_dumbbell_y    : num  -0.02 -0.02 -0.02 -0.02 -0.02 -0.02 -0.02 -0.02 -0.02 -0.02 ...
+##  $ gyros_dumbbell_z    : num  0 0 0 -0.02 0 0 0 0 0 0 ...
+##  $ accel_dumbbell_x    : int  -234 -233 -232 -232 -233 -234 -234 -232 -235 -233 ...
+##  $ accel_dumbbell_y    : int  47 47 46 48 48 48 46 47 48 47 ...
+##  $ accel_dumbbell_z    : int  -271 -269 -270 -269 -270 -269 -272 -269 -270 -269 ...
+##  $ magnet_dumbbell_x   : int  -559 -555 -561 -552 -554 -558 -555 -549 -558 -564 ...
+##  $ magnet_dumbbell_y   : int  293 296 298 303 292 294 300 292 291 299 ...
+##  $ magnet_dumbbell_z   : num  -65 -64 -63 -60 -68 -66 -74 -65 -69 -64 ...
+##  $ roll_forearm        : num  28.4 28.3 28.3 28.1 28 27.9 27.8 27.7 27.7 27.6 ...
+##  $ pitch_forearm       : num  -63.9 -63.9 -63.9 -63.9 -63.9 -63.9 -63.8 -63.8 -63.8 -63.8 ...
+##  $ yaw_forearm         : num  -153 -153 -152 -152 -152 -152 -152 -152 -152 -152 ...
+##  $ total_accel_forearm : int  36 36 36 36 36 36 36 36 36 36 ...
+##  $ gyros_forearm_x     : num  0.03 0.02 0.03 0.02 0.02 0.02 0.02 0.03 0.02 0.02 ...
+##  $ gyros_forearm_y     : num  0 0 -0.02 -0.02 0 -0.02 -0.02 0 0 -0.02 ...
+##  $ gyros_forearm_z     : num  -0.02 -0.02 0 0 -0.02 -0.03 0 -0.02 -0.02 -0.02 ...
+##  $ accel_forearm_x     : int  192 192 196 189 189 193 193 193 190 193 ...
+##  $ accel_forearm_y     : int  203 203 204 206 206 203 205 204 205 205 ...
+##  $ accel_forearm_z     : int  -215 -216 -213 -214 -214 -215 -213 -214 -215 -214 ...
+##  $ magnet_forearm_x    : int  -17 -18 -18 -16 -17 -9 -9 -16 -22 -17 ...
+##  $ magnet_forearm_y    : num  654 661 658 658 655 660 660 653 656 657 ...
+##  $ magnet_forearm_z    : num  476 473 469 469 473 478 474 476 473 465 ...
+##  $ classe              : Factor w/ 5 levels &quot;A&quot;,&quot;B&quot;,&quot;C&quot;,&quot;D&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...</code></pre>
+<p>The remaining data set now consists of 53 columns.</p>
+</div>
+<div id="building-model-to-predict-training-quality" class="section level4">
+<h4>Building model to predict training quality</h4>
+<p>We use the random forests method on the training data to build a model for predicting the <em>classe</em> variable. All other variables are used as predictors.</p>
+<pre class="r"><code>model &lt;- randomForest(classe~., data=training)</code></pre>
+<p>Now that we built a model on the <strong>training set</strong>, we can use the <strong>test set</strong> to evaluate accuracy of the model and calculate the out-of-sample error rate.</p>
+<pre class="r"><code>prediction &lt;- predict(model,testing)
+cm &lt;- confusionMatrix(prediction, testing$classe)
+cm</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 1347    0    0    0    0
-##          B    0  908    0    0    0
-##          C    0    0  852    0    0
-##          D    0    0    0  732    0
-##          E    0    0    0    0  852
+##          A 2231   13    0    0    0
+##          B    0 1500    7    0    0
+##          C    0    5 1358   13    0
+##          D    0    0    3 1272    2
+##          E    1    0    0    1 1440
 ## 
 ## Overall Statistics
-##                                      
-##                Accuracy : 1          
-##                  95% CI : (0.9992, 1)
-##     No Information Rate : 0.2871     
-##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16  
-##                                      
-##                   Kappa : 1          
-##  Mcnemar's Test P-Value : NA         
+##                                           
+##                Accuracy : 0.9943          
+##                  95% CI : (0.9923, 0.9958)
+##     No Information Rate : 0.2845          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.9927          
+##  Mcnemar's Test P-Value : NA              
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            1.0000   1.0000   1.0000    1.000   1.0000
-## Specificity            1.0000   1.0000   1.0000    1.000   1.0000
-## Pos Pred Value         1.0000   1.0000   1.0000    1.000   1.0000
-## Neg Pred Value         1.0000   1.0000   1.0000    1.000   1.0000
-## Prevalence             0.2871   0.1936   0.1816    0.156   0.1816
-## Detection Rate         0.2871   0.1936   0.1816    0.156   0.1816
-## Detection Prevalence   0.2871   0.1936   0.1816    0.156   0.1816
-## Balanced Accuracy      1.0000   1.0000   1.0000    1.000   1.0000</code></pre>
-<pre class="r"><code># calculate predictions on the training set
-predictions &lt;- predict(model,testing)
-# Create answer files
-pml_write_files = function(x){
-  
-  n = length(x)
-  for(i in 1:n){
-    filename = paste0(&quot;problem_id_&quot;,i,&quot;.txt&quot;)
-    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
-  }
-}
-
- pml_write_files(predictions)</code></pre>
+## Sensitivity            0.9996   0.9881   0.9927   0.9891   0.9986
+## Specificity            0.9977   0.9989   0.9972   0.9992   0.9997
+## Pos Pred Value         0.9942   0.9954   0.9869   0.9961   0.9986
+## Neg Pred Value         0.9998   0.9972   0.9985   0.9979   0.9997
+## Prevalence             0.2845   0.1935   0.1744   0.1639   0.1838
+## Detection Rate         0.2843   0.1912   0.1731   0.1621   0.1835
+## Detection Prevalence   0.2860   0.1921   0.1754   0.1628   0.1838
+## Balanced Accuracy      0.9986   0.9935   0.9950   0.9942   0.9992</code></pre>
+<p>The overall accuracy is 99.43%, which makes the out-of-sample error rate <strong>1 - accuracy</strong> = 0.57%, which is a fairly low error rate for out of sample data.</p>
+</div>
+<div id="conclusion" class="section level4">
+<h4>Conclusion</h4>
+<p>We have built a machine learning algorithm to predict activity quality from activity monitors. We validated the model on the test set to predict how the model would perform on an independent data set. The out-of-sample error rate has been 0.57%, which is a fairly promising result for the 5 activity quality monitors collected into this dataset.</p>
+</div>
 
 
 </div>
