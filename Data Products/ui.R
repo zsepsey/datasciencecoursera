@@ -6,7 +6,9 @@ shinyUI(fluidPage(
       tabPanel("Calculation", fluidRow(
         column(12,
                p(),
-               tags$i('Use the sliders to select age and ingredients of the concrete mixture. The calculated the compressive strength appears below. For more information about the calculation see the Doucmentation tab.'),
+               tags$i("Use the sliders to select age and ingredients of the concrete mixture.",
+                      "The calculated the compressive strength appears below. For more information about ",
+                      "the calculation see the About tab."),
                tags$hr()
         )), fluidRow(
           column(4,
@@ -30,17 +32,25 @@ shinyUI(fluidPage(
           )
       ), 
       tabPanel("About", 
-               p(),
+               h4("Usage"),
                "This application calculates the compressive strength of concrete based on its age and igredients.",
                "You can use the sliders to adjust the parameters. The calculated compressive strength will show on the same page below.",
+               h4("The calculation"),
+               "The calculation is based on R's Support Vector Machines (SVM).",
+                "This machine learning method fits a non-linear regression model for the compressive strength of concrete, ",
+               "using a real data set of 1030 observations.",
+               tags$br(),
+               "The out-of-sample-error-rate has been: 6.71",
                p(),
-               "The calculation is based on R's Support Vector Machines.",
-                "This machine learning method fits a non-linear regression model for the compression strength of concrete.",
                "For more information see",
                tags$a("https://en.wikibooks.org/wiki/Data_Mining_Algorithms_In_R/Classification/SVM"),
                p(),
                "The data used for fitting the model has been obtained from ",
-               tags$a("https://archive.ics.uci.edu/ml/datasets/Concrete+Compressive+Strength") 
+               tags$a("https://archive.ics.uci.edu/ml/datasets/Concrete+Compressive+Strength"),
+               
+               h4("Source code"),
+               "Source code for this application can be found here:",
+               tags$a("https://github.com/zsepsey/datasciencecoursera/tree/master/Data%20Products")
               )
     )
   )

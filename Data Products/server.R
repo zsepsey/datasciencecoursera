@@ -1,7 +1,22 @@
 library(shiny) 
 
-#diabetesRisk <- function(glucose) glucose / 200
 initModel <- function() {
+  set.seed(3523)
+  library(AppliedPredictiveModeling)
+  data(concrete)
+  inTrain = createDataPartition(concrete$CompressiveStrength, p = 3/4)[[1]]
+  training = concrete[ inTrain,]
+  testing = concrete[-inTrain,]
+  library(e1071)
+  fit <- svm(CompressiveStrength~., training)
+  testing$pr5 <- predict(fit, testing)
+  testing$error <- testing$CompressiveStrength - testing$pr5
+  rmse <- sqrt(mean(testing$error ^ 2))
+  print(rmse) #6.715009
+  
+  saveRDS(fit, "concreteModel.RDS")
+}
+initModel_noTrain <- function() {
   set.seed(3523)
   library(AppliedPredictiveModeling)
   data(concrete)
